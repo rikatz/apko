@@ -27,6 +27,9 @@ import (
 	gzip "golang.org/x/build/pargzip"
 
 	apkofs "chainguard.dev/apko/pkg/fs"
+	"github.com/pkg/xattr"
+
+
 )
 
 func (ctx *Context) writeArchiveFromFS(dst io.Writer, fsys fs.FS) error {
@@ -144,9 +147,14 @@ func (ctx *Context) writeTar(tw *tar.Writer, fsys fs.FS) error {
 				seenFiles[inode] = header.Name
 			}
 		}
-
+		
+		header.PAXRecords = map[string]string{}
+		attrs, err := xattr.Get(path, "security.capability")
+		if err == nil {
+			header.PAXRecords["SCHILY.xattr.security.capability"] = string(attrs)
+		}
+		
 		if ctx.UseChecksums {
-			header.PAXRecords = map[string]string{}
 
 			if link != "" {
 				linkDigest := sha1.Sum([]byte(link)) // nolint:gosec
